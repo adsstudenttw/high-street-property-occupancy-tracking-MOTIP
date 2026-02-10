@@ -5,3 +5,11 @@
 
 # Datasets
 datasets/
+
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+
+# Training artifacts
+outputs/

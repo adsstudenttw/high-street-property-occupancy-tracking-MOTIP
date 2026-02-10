@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.venv
+datasets
+outputs
+TrackEval/data
+TrackEval/tests

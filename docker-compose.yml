@@ -1,0 +1,19 @@
+services:
+  motip:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: motip-uv:latest
+    container_name: motip-uv
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    gpus: all
+    shm_size: "16gb"
+    volumes:
+      - ./:/workspace
+      - ./datasets:/workspace/datasets
+      - ./outputs:/workspace/outputs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://127.0.0.1:5000}
