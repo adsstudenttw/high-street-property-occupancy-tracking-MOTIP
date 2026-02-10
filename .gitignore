@@ -2,3 +2,6 @@
 
 # PyCharm
 .idea/
+
+# Datasets
+datasets/

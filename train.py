@@ -31,7 +31,11 @@ from submit_and_evaluate import submit_and_evaluate_one_model
 from utils.misc import is_main_process
 
 
-def train_engine(config: dict):
+def train_engine(
+    config: dict,
+    report_intermediate=None,
+    should_prune=None,
+):
     # Init some settings:
     assert (
         "EXP_NAME" in config and config["EXP_NAME"] is not None
@@ -172,6 +176,7 @@ def train_engine(config: dict):
         # device_placement=[False]        # whether to place the data on the device
     )
 
+    best_eval_hota = None
     try:
         for epoch in range(train_states["start_epoch"], config["EPOCHS"]):
             logger.info(log=f"Start training epoch {epoch}.")
@@ -287,6 +292,28 @@ def train_engine(config: dict):
                         ),
                     )
                     eval_metrics.sync()
+                    eval_hota = eval_metrics["HOTA"].global_average
+                    if best_eval_hota is None or eval_hota > best_eval_hota:
+                        best_eval_hota = eval_hota
+                    if report_intermediate is not None:
+                        report_intermediate(
+                            epoch=epoch,
+                            hota=eval_hota,
+                            global_step=train_states["global_step"],
+                        )
+                    if should_prune is not None and should_prune(
+                        epoch=epoch,
+                        hota=eval_hota,
+                        global_step=train_states["global_step"],
+                    ):
+                        logger.warning(
+                            log=f"Prune signal received at epoch {epoch} with HOTA={eval_hota:.4f}."
+                        )
+                        return {
+                            "best_eval_hota": best_eval_hota,
+                            "pruned": True,
+                            "last_epoch": epoch,
+                        }
                     logger.metrics(
                         log=f"[Eval epoch: {epoch}] ",
                         metrics=eval_metrics,
@@ -304,7 +331,11 @@ def train_engine(config: dict):
     finally:
         # Ensure MLflow run is closed on main process
         logger.close()
-    return
+    return {
+        "best_eval_hota": best_eval_hota,
+        "pruned": False,
+        "last_epoch": config["EPOCHS"] - 1,
+    }
 
 
 def train_one_epoch(
