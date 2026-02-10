@@ -6,7 +6,7 @@ class HSPOT(DanceTrack):
     def __init__(
         self,
         data_root: str = "./datasets/",
-        sub_dir: str = "HSPOT",
+        sub_dir: str = "hspot",
         split: str = "train",
         load_annotation: bool = True,
     ):

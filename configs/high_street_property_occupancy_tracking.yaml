@@ -3,7 +3,7 @@ SUPER_CONFIG_PATH: ./configs/r50_deformable_detr_motip_dancetrack.yaml
 DATASETS: [HSPOT]
 DATASET_SPLITS: [train]
 INFERENCE_DATASET: HSPOT
-INFERENCE_SPLIT: test
+INFERENCE_SPLIT: val
 
 DETR_PRETRAIN: ./pretrains/r50_deformable_detr_coco_dancetrack.pth
 
@@ -33,3 +33,4 @@ USE_DECODER_CHECKPOINT: False
 
 # MLflow settings
 MLFLOW_TRACKING_URI: "http://127.0.0.1:5000" # Alter to SURF RC MLflow instance
+USE_WANDB: True
