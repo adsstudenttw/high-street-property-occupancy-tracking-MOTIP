@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BUILD_CUDA_OPS: ${BUILD_CUDA_OPS:-1}
     image: motip-uv:latest
     container_name: motip-uv
     working_dir: /workspace

@@ -1,38 +1,17 @@
 # High-Street Occupancy Tracking (MOTIP)
 
-This guide explains how to install and run the project end-to-end:
-1. Install dependencies (`uv`).
-2. Prepare datasets.
-3. Train a baseline model.
-4. Tune hyperparameters with Optuna (Bayesian optimization + pruning).
-5. Evaluate the best model on the test split.
+This guide explains how to install and run the project with Docker (default path), then lists local non-Docker steps as optional.
 
 ## 1. Prerequisites
 
 - Linux with NVIDIA GPU (recommended for training/inference speed)
-- NVIDIA driver + CUDA runtime compatible with PyTorch 2.4.0 / CUDA 12.1
+- NVIDIA driver + CUDA runtime (`nvidia-smi` should work)
 - `git`
-- `uv` (https://docs.astral.sh/uv/)
+- `sudo` access on the VM
 
-Install `uv`:
+## 2. Prepare datasets
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-## 2. Clone and install
-
-From the project root:
-
-```bash
-uv sync
-```
-
-This creates `.venv` and installs dependencies from `pyproject.toml`.
-
-## 3. Prepare datasets
-
-Expected root:
+Expected dataset root:
 
 ```text
 ./datasets/
@@ -45,11 +24,75 @@ Expected root:
     test_seqmap.txt
 ```
 
-Your config uses:
+The default config uses:
 - `--config-path ./configs/high_street_property_occupancy_tracking.yaml`
 - `--data-root ./datasets/`
 
-## 4. Train baseline model (1 GPU)
+## 3. Docker setup (default)
+
+```bash
+make bootstrap-gpu
+newgrp docker
+make build-gpu
+```
+
+`make bootstrap-gpu` installs Docker (official repo) and NVIDIA Container Toolkit.
+
+## 4. Two-VM workflow (recommended for limited GPU hours)
+
+### 4.1 CPU VM smoke-test (no GPU usage)
+
+```bash
+make bootstrap-cpu
+newgrp docker
+make build-cpu
+make smoke-cpu
+```
+
+This validates Docker/project dependencies and command startup.  
+Do not expect full training/inference on CPU VM.
+
+### 4.2 GPU VM actual run
+
+```bash
+make bootstrap-gpu
+newgrp docker
+make build-gpu
+make train
+```
+
+Outputs are written under `./outputs/`.
+
+## 5. Run hyperparameter tuning (Docker, optimize validation HOTA)
+
+```bash
+make tune
+```
+
+Key outputs:
+- Optuna DB: `hspot_hota_optuna.db`
+- Best-trial summary: `./outputs/optuna_hspot/best_trial.json`
+
+## 6. Evaluate best checkpoint on test split (Docker)
+
+Replace `<best_checkpoint_path>` with your best trial checkpoint:
+
+```bash
+make eval BEST_CKPT=./outputs/<best_checkpoint_path>.pth
+```
+
+## 7. Optional: local (non-Docker) setup
+
+This section is optional. Use it only if you explicitly want to run outside Docker.
+
+Install `uv`:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync
+```
+
+Local baseline training:
 
 ```bash
 uv run accelerate launch --num_processes=1 train.py \
@@ -58,9 +101,7 @@ uv run accelerate launch --num_processes=1 train.py \
   --exp-name hspot_baseline
 ```
 
-Outputs are written under `./outputs/`.
-
-## 5. Hyperparameter tuning with Optuna (optimize validation HOTA)
+Local Optuna tuning:
 
 ```bash
 uv run python optuna_tune.py \
@@ -75,13 +116,7 @@ uv run python optuna_tune.py \
   --output-root ./outputs/optuna_hspot
 ```
 
-Key outputs:
-- Optuna DB: `hspot_hota_optuna.db`
-- Best-trial summary: `./outputs/optuna_hspot/best_trial.json`
-
-## 6. Evaluate best checkpoint on test split
-
-Replace `<best_checkpoint_path>` with the best trial checkpoint path.
+Local final evaluation:
 
 ```bash
 uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
@@ -92,27 +127,4 @@ uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
   --inference-split test \
   --inference-model <best_checkpoint_path> \
   --outputs-dir ./outputs/hspot_final_test
-```
-
-## 7. Optional: run with Docker
-
-Build image:
-
-```bash
-docker compose build
-```
-
-Run shell in container:
-
-```bash
-docker compose run --rm motip bash
-```
-
-Run baseline training in container:
-
-```bash
-docker compose run --rm motip uv run accelerate launch --num_processes=1 train.py \
-  --config-path ./configs/high_street_property_occupancy_tracking.yaml \
-  --data-root ./datasets/ \
-  --exp-name hspot_baseline
 ```

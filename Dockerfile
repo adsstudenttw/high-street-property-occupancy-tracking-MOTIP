@@ -1,4 +1,5 @@
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+ARG BUILD_CUDA_OPS=1
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_LINK_MODE=copy
@@ -32,7 +33,11 @@ COPY . .
 # Make venv python the default.
 ENV PATH="/workspace/.venv/bin:${PATH}"
 
-# Compile Deformable Attention CUDA ops.
-RUN cd models/ops && python setup.py build install
+# Compile Deformable Attention CUDA ops (GPU build).
+RUN if [ "$BUILD_CUDA_OPS" = "1" ]; then \
+      cd models/ops && python setup.py build install; \
+    else \
+      echo "Skipping CUDA ops build (BUILD_CUDA_OPS=${BUILD_CUDA_OPS})"; \
+    fi
 
 CMD ["bash"]
