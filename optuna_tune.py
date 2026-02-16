@@ -54,14 +54,30 @@ def build_base_config(args):
 
 
 def sample_hparams(trial, cfg):
-    cfg["LR"] = trial.suggest_float("LR", 5e-6, 5e-4, log=True)
-    cfg["WEIGHT_DECAY"] = trial.suggest_float("WEIGHT_DECAY", 1e-5, 5e-3, log=True)
-    cfg["DET_THRESH"] = trial.suggest_float("DET_THRESH", 0.1, 0.7)
-    cfg["NEWBORN_THRESH"] = trial.suggest_float("NEWBORN_THRESH", 0.2, 0.9)
-    cfg["ID_THRESH"] = trial.suggest_float("ID_THRESH", 0.05, 0.5)
-    cfg["MISS_TOLERANCE"] = trial.suggest_int("MISS_TOLERANCE", 10, 40)
-    cfg["MAX_CLIP_NORM"] = trial.suggest_float("MAX_CLIP_NORM", 0.05, 0.3)
-    cfg["LR_DICTIONARY_SCALE"] = trial.suggest_float("LR_DICTIONARY_SCALE", 0.3, 2.0)
+    # Optimizer / training stability.
+    cfg["LR"] = trial.suggest_float("LR", 2e-5, 3e-4, log=True)
+    cfg["WEIGHT_DECAY"] = trial.suggest_float("WEIGHT_DECAY", 1e-5, 2e-3, log=True)
+    cfg["LR_BACKBONE_SCALE"] = trial.suggest_float(
+        "LR_BACKBONE_SCALE", 0.03, 0.3, log=True
+    )
+    cfg["LR_DICTIONARY_SCALE"] = trial.suggest_float(
+        "LR_DICTIONARY_SCALE", 0.5, 1.5
+    )
+    cfg["LR_WARMUP_EPOCHS"] = trial.suggest_int("LR_WARMUP_EPOCHS", 0, 3)
+    cfg["MAX_CLIP_NORM"] = trial.suggest_float("MAX_CLIP_NORM", 0.05, 0.2)
+
+    # ID association strength (HOTA-sensitive via AssA/ID terms).
+    cfg["ID_LOSS_WEIGHT"] = trial.suggest_float("ID_LOSS_WEIGHT", 0.5, 3.0)
+
+    # Inference / tracking behavior.
+    cfg["ASSIGNMENT_PROTOCOL"] = trial.suggest_categorical(
+        "ASSIGNMENT_PROTOCOL", ["object-max", "hungarian"]
+    )
+    cfg["DET_THRESH"] = trial.suggest_float("DET_THRESH", 0.2, 0.6)
+    cfg["NEWBORN_THRESH"] = trial.suggest_float("NEWBORN_THRESH", 0.4, 0.9)
+    cfg["ID_THRESH"] = trial.suggest_float("ID_THRESH", 0.05, 0.35)
+    cfg["MISS_TOLERANCE"] = trial.suggest_int("MISS_TOLERANCE", 15, 40)
+    cfg["AREA_THRESH"] = trial.suggest_categorical("AREA_THRESH", [0, 25, 50])
     return cfg
 
 
