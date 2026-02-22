@@ -1,5 +1,3 @@
-# Copyright (c) Ruopeng Gao. All Rights Reserved.
-
 import os
 import json
 import copy
@@ -60,9 +58,7 @@ def sample_hparams(trial, cfg):
     cfg["LR_BACKBONE_SCALE"] = trial.suggest_float(
         "LR_BACKBONE_SCALE", 0.03, 0.3, log=True
     )
-    cfg["LR_DICTIONARY_SCALE"] = trial.suggest_float(
-        "LR_DICTIONARY_SCALE", 0.5, 1.5
-    )
+    cfg["LR_DICTIONARY_SCALE"] = trial.suggest_float("LR_DICTIONARY_SCALE", 0.5, 1.5)
     cfg["LR_WARMUP_EPOCHS"] = trial.suggest_int("LR_WARMUP_EPOCHS", 0, 3)
     cfg["MAX_CLIP_NORM"] = trial.suggest_float("MAX_CLIP_NORM", 0.05, 0.2)
 
