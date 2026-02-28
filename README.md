@@ -63,7 +63,31 @@ make train
 
 Outputs are written under `./outputs/`.
 
-## 5. Run hyperparameter tuning (Docker, optimize validation HOTA)
+## 5. Evaluate the pretrained MOTIP baseline on HSPOT val (Docker)
+
+Download the pretrained MOTIP checkpoint first. The DanceTrack MOTIP checkpoint is referenced in [docs/MODEL_ZOO.md](./docs/MODEL_ZOO.md).
+
+Default checkpoint path used by the Makefile:
+
+```text
+./pretrains/r50_deformable_detr_motip_dancetrack.pth
+```
+
+Run the baseline evaluation on the validation split:
+
+```bash
+make baseline-val
+```
+
+Or override the checkpoint path explicitly:
+
+```bash
+make baseline-val BASELINE_CKPT=./pretrains/<pretrained_motip_checkpoint>.pth
+```
+
+This gives you the zero-shot baseline on `HSPOT val` before finetuning or hyperparameter tuning.
+
+## 6. Run hyperparameter tuning (Docker, optimize validation HOTA)
 
 ```bash
 make tune
@@ -73,7 +97,7 @@ Key outputs:
 - Optuna DB: `hspot_hota_optuna.db`
 - Best-trial summary: `./outputs/optuna_hspot/best_trial.json`
 
-## 6. Evaluate best checkpoint on test split (Docker)
+## 7. Evaluate best checkpoint on test split (Docker)
 
 Replace `<best_checkpoint_path>` with your best trial checkpoint:
 
@@ -81,7 +105,7 @@ Replace `<best_checkpoint_path>` with your best trial checkpoint:
 make eval BEST_CKPT=./outputs/<best_checkpoint_path>.pth
 ```
 
-## 7. Optional: local (non-Docker) setup
+## 8. Optional: local (non-Docker) setup
 
 This section is optional. Use it only if you explicitly want to run outside Docker.
 
@@ -99,6 +123,19 @@ uv run accelerate launch --num_processes=1 train.py \
   --config-path ./configs/high_street_property_occupancy_tracking.yaml \
   --data-root ./datasets/ \
   --exp-name hspot_baseline
+```
+
+Local pretrained MOTIP baseline evaluation on `HSPOT val`:
+
+```bash
+uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
+  --config-path ./configs/high_street_property_occupancy_tracking.yaml \
+  --data-root ./datasets/ \
+  --inference-mode evaluate \
+  --inference-dataset HSPOT \
+  --inference-split val \
+  --inference-model ./pretrains/r50_deformable_detr_motip_dancetrack.pth \
+  --outputs-dir ./outputs/hspot_pretrained_val
 ```
 
 Local Optuna tuning:

@@ -253,7 +253,8 @@ def submit_and_evaluate_one_model(
         )
         # Write the results to the submit file:
         if dataset in [
-            "HSPOT" "DanceTrack",
+            "HSPOT",
+            "DanceTrack",
             "SportsMOT",
             "MOT17",
             "PersonPath22_Inference",
@@ -308,9 +309,10 @@ def submit_and_evaluate_one_model(
                 log=f"Start evaluation...",
                 only_main=True,
             )
-            # Prepare for evaluation:
+            # Prepare for evaluation. Some dataset ids differ from their on-disk folder names.
+            dataset_dir = {"HSPOT": "hspot"}.get(dataset, dataset)
             if dataset in ["HSPOT", "DanceTrack", "SportsMOT", "MOT17", "BFT"]:
-                gt_dir = os.path.join(data_root, dataset, data_split)
+                gt_dir = os.path.join(data_root, dataset_dir, data_split)
                 tracker_dir = os.path.join(outputs_dir, "tracker")
             elif dataset in ["PersonPath22_Inference"]:
                 gt_dir = os.path.join(data_root, dataset, "gts", "person_path_22-test")
@@ -327,7 +329,7 @@ def submit_and_evaluate_one_model(
                     "--METRICS": ["HOTA", "CLEAR", "Identity"],
                     "--GT_FOLDER": gt_dir,
                     "--SEQMAP_FILE": os.path.join(
-                        data_root, dataset, f"{data_split}_seqmap.txt"
+                        data_root, dataset_dir, f"{data_split}_seqmap.txt"
                     ),
                     "--SKIP_SPLIT_FOL": "True",
                     "--TRACKERS_TO_EVAL": "",
@@ -337,6 +339,8 @@ def submit_and_evaluate_one_model(
                     "--PLOT_CURVES": "False",
                     "--TRACKERS_FOLDER": tracker_dir,
                 }
+                if dataset == "HSPOT":
+                    args["--DO_PREPROC"] = "False"
                 cmd = ["python", "TrackEval/scripts/run_mot_challenge.py"]
             elif dataset in ["PersonPath22_Inference"]:
                 args = {

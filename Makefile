@@ -3,6 +3,7 @@ SHELL := /bin/bash
 CONFIG ?= ./configs/high_street_property_occupancy_tracking.yaml
 DATA_ROOT ?= ./datasets/
 EXP_NAME ?= hspot_train
+BASELINE_CKPT ?= ./pretrains/r50_deformable_detr_motip_dancetrack.pth
 STUDY_NAME ?= hspot_hota_optuna
 STORAGE ?= sqlite:///hspot_hota_optuna.db
 N_TRIALS ?= 30
@@ -10,7 +11,7 @@ EPOCHS ?= 10
 OUTPUT_ROOT ?= ./outputs/optuna_hspot
 BEST_CKPT ?= ./outputs/REPLACE_WITH_BEST_CHECKPOINT.pth
 
-.PHONY: help bootstrap bootstrap-cpu bootstrap-gpu build build-cpu build-gpu shell smoke-cpu train tune eval
+.PHONY: help bootstrap bootstrap-cpu bootstrap-gpu build build-cpu build-gpu shell smoke-cpu train baseline-val tune eval
 
 help:
 	@echo "Available targets:"
@@ -23,6 +24,7 @@ help:
 	@echo "  make shell          - Open shell in project container"
 	@echo "  make smoke-cpu      - Run CPU smoke test command in container"
 	@echo "  make train          - Run training in container"
+	@echo "  make baseline-val   - Evaluate pretrained MOTIP checkpoint on HSPOT val in container"
 	@echo "  make tune           - Run Optuna tuning in container"
 	@echo "  make eval           - Evaluate BEST_CKPT on test split in container"
 
@@ -55,6 +57,16 @@ train:
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
 		--exp-name $(EXP_NAME)
+
+baseline-val:
+	docker compose run --rm motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
+		--config-path $(CONFIG) \
+		--data-root $(DATA_ROOT) \
+		--inference-mode evaluate \
+		--inference-dataset HSPOT \
+		--inference-split val \
+		--inference-model $(BASELINE_CKPT) \
+		--outputs-dir ./outputs/hspot_pretrained_val
 
 tune:
 	docker compose run --rm motip uv run python optuna_tune.py \
