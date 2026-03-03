@@ -31,6 +31,15 @@ from submit_and_evaluate import submit_and_evaluate_one_model
 from utils.misc import is_main_process
 
 
+def _build_stage_tags(config: dict) -> dict:
+    return {
+        "stage": config.get("RUN_STAGE"),
+        "hpo_study_name": config.get("HPO_STUDY_NAME"),
+        "hpo_trial_number": config.get("HPO_TRIAL_NUMBER"),
+        "hpo_stage_iter": config.get("HPO_STAGE_ITER"),
+    }
+
+
 def train_engine(
     config: dict,
     report_intermediate=None,
@@ -65,6 +74,7 @@ def train_engine(
         exp_project=config["EXP_PROJECT"],
         exp_group=config["EXP_GROUP"],
         exp_name=config["EXP_NAME"],
+        extra_tags=_build_stage_tags(config),
     )
     logger.info(f"We init the logger at {logger.logdir}.")
     if config["USE_WANDB"] is False:
@@ -177,6 +187,7 @@ def train_engine(
     )
 
     best_eval_hota = None
+    best_checkpoint_path = None
     try:
         for epoch in range(train_states["start_epoch"], config["EPOCHS"]):
             logger.info(log=f"Start training epoch {epoch}.")
@@ -295,6 +306,7 @@ def train_engine(
                     eval_hota = eval_metrics["HOTA"].global_average
                     if best_eval_hota is None or eval_hota > best_eval_hota:
                         best_eval_hota = eval_hota
+                        best_checkpoint_path = ckpt_path
                     if report_intermediate is not None:
                         report_intermediate(
                             epoch=epoch,
@@ -311,6 +323,7 @@ def train_engine(
                         )
                         return {
                             "best_eval_hota": best_eval_hota,
+                            "best_checkpoint_path": best_checkpoint_path,
                             "pruned": True,
                             "last_epoch": epoch,
                         }
@@ -333,6 +346,7 @@ def train_engine(
         logger.close()
     return {
         "best_eval_hota": best_eval_hota,
+        "best_checkpoint_path": best_checkpoint_path,
         "pruned": False,
         "last_epoch": config["EPOCHS"] - 1,
     }

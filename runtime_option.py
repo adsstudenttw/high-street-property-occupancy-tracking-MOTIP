@@ -107,6 +107,10 @@ def runtime_option():
     # Logging:
     parser.add_argument("--git-version", type=str)
     parser.add_argument("--save-checkpoint-per-epoch", type=int)
+    parser.add_argument("--run-stage", type=str)
+    parser.add_argument("--hpo-study-name", type=str)
+    parser.add_argument("--hpo-trial-number", type=int)
+    parser.add_argument("--hpo-stage-iter", type=int)
 
     parser.add_argument("--use-previous-checkpoint", type=str)
 

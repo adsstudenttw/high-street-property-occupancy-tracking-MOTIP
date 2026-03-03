@@ -11,8 +11,7 @@ except ImportError as e:
     ) from e
 
 from train import train_engine
-from utils.misc import yaml_to_dict
-from configs.util import load_super_config
+from tuning_utils import build_base_config, apply_tuned_hparams
 
 
 def build_parser():
@@ -24,57 +23,42 @@ def build_parser():
     parser.add_argument("--inference-split", type=str, default="val")
     parser.add_argument("--study-name", type=str, default="motip_hota_tuning")
     parser.add_argument("--storage", type=str, default="sqlite:///optuna_study.db")
-    parser.add_argument("--n-trials", type=int, default=20)
+    parser.add_argument("--n-trials", type=int, default=40)
     parser.add_argument("--timeout", type=int, default=None)
     parser.add_argument("--sampler-seed", type=int, default=42)
     parser.add_argument("--pruner-startup-trials", type=int, default=3)
     parser.add_argument("--pruner-warmup-steps", type=int, default=2)
     parser.add_argument("--pruner-interval-steps", type=int, default=1)
-    parser.add_argument("--epochs", type=int, default=None)
+    parser.add_argument("--epochs", type=int, default=6)
     parser.add_argument("--output-root", type=str, default="./outputs/optuna")
     parser.add_argument("--disable-mlflow", action="store_true")
     return parser
 
 
-def build_base_config(args):
-    cfg = yaml_to_dict(args.config_path)
-    if args.super_config_path is not None:
-        cfg = load_super_config(cfg, args.super_config_path)
-    else:
-        cfg = load_super_config(cfg, cfg["SUPER_CONFIG_PATH"])
-    if args.data_root is not None:
-        cfg["DATA_ROOT"] = args.data_root
-    if args.inference_dataset is not None:
-        cfg["INFERENCE_DATASET"] = args.inference_dataset
-    if args.inference_split is not None:
-        cfg["INFERENCE_SPLIT"] = args.inference_split
-    return cfg
-
-
 def sample_hparams(trial, cfg):
-    # Optimizer / training stability.
-    cfg["LR"] = trial.suggest_float("LR", 2e-5, 3e-4, log=True)
-    cfg["WEIGHT_DECAY"] = trial.suggest_float("WEIGHT_DECAY", 1e-5, 2e-3, log=True)
-    cfg["LR_BACKBONE_SCALE"] = trial.suggest_float(
-        "LR_BACKBONE_SCALE", 0.03, 0.3, log=True
-    )
-    cfg["LR_DICTIONARY_SCALE"] = trial.suggest_float("LR_DICTIONARY_SCALE", 0.5, 1.5)
-    cfg["LR_WARMUP_EPOCHS"] = trial.suggest_int("LR_WARMUP_EPOCHS", 0, 3)
-    cfg["MAX_CLIP_NORM"] = trial.suggest_float("MAX_CLIP_NORM", 0.05, 0.2)
-
-    # ID association strength (HOTA-sensitive via AssA/ID terms).
-    cfg["ID_LOSS_WEIGHT"] = trial.suggest_float("ID_LOSS_WEIGHT", 0.5, 3.0)
-
-    # Inference / tracking behavior.
-    cfg["ASSIGNMENT_PROTOCOL"] = trial.suggest_categorical(
-        "ASSIGNMENT_PROTOCOL", ["object-max", "hungarian"]
-    )
-    cfg["DET_THRESH"] = trial.suggest_float("DET_THRESH", 0.2, 0.6)
-    cfg["NEWBORN_THRESH"] = trial.suggest_float("NEWBORN_THRESH", 0.4, 0.9)
-    cfg["ID_THRESH"] = trial.suggest_float("ID_THRESH", 0.05, 0.35)
-    cfg["MISS_TOLERANCE"] = trial.suggest_int("MISS_TOLERANCE", 15, 40)
-    cfg["AREA_THRESH"] = trial.suggest_categorical("AREA_THRESH", [0, 25, 50])
-    return cfg
+    params = {
+        # Optimizer / training stability.
+        "LR": trial.suggest_float("LR", 5e-5, 2e-4, log=True),
+        "WEIGHT_DECAY": trial.suggest_float("WEIGHT_DECAY", 5e-5, 1e-3, log=True),
+        "LR_BACKBONE_SCALE": trial.suggest_float(
+            "LR_BACKBONE_SCALE", 0.05, 0.2, log=True
+        ),
+        "LR_DICTIONARY_SCALE": trial.suggest_float("LR_DICTIONARY_SCALE", 0.75, 1.25),
+        "LR_WARMUP_EPOCHS": trial.suggest_int("LR_WARMUP_EPOCHS", 0, 2),
+        "MAX_CLIP_NORM": trial.suggest_float("MAX_CLIP_NORM", 0.05, 0.15),
+        # ID association strength (HOTA-sensitive via AssA/ID terms).
+        "ID_LOSS_WEIGHT": trial.suggest_float("ID_LOSS_WEIGHT", 0.75, 2.0),
+        # Inference / tracking behavior.
+        "ASSIGNMENT_PROTOCOL": trial.suggest_categorical(
+            "ASSIGNMENT_PROTOCOL", ["object-max", "hungarian"]
+        ),
+        "DET_THRESH": trial.suggest_float("DET_THRESH", 0.25, 0.5),
+        "NEWBORN_THRESH": trial.suggest_float("NEWBORN_THRESH", 0.45, 0.75),
+        "ID_THRESH": trial.suggest_float("ID_THRESH", 0.1, 0.3),
+        "MISS_TOLERANCE": trial.suggest_int("MISS_TOLERANCE", 16, 32),
+        "AREA_THRESH": trial.suggest_categorical("AREA_THRESH", [0, 25]),
+    }
+    return apply_tuned_hparams(cfg=cfg, params=params)
 
 
 def make_objective(base_cfg, args):
@@ -84,6 +68,10 @@ def make_objective(base_cfg, args):
         cfg["OUTPUTS_DIR"] = os.path.join(args.output_root, f"trial_{trial.number:04d}")
         cfg["EXP_GROUP"] = args.study_name
         cfg["EXP_NAME"] = f"{args.study_name}_trial_{trial.number:04d}"
+        cfg["RUN_STAGE"] = "hyperparameter_tuning"
+        cfg["HPO_STUDY_NAME"] = args.study_name
+        cfg["HPO_TRIAL_NUMBER"] = trial.number
+        cfg["HPO_STAGE_ITER"] = trial.number
         cfg["SAVE_CHECKPOINT_PER_EPOCH"] = 1
         if args.epochs is not None:
             cfg["EPOCHS"] = args.epochs
@@ -132,7 +120,13 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    base_cfg = build_base_config(args)
+    base_cfg = build_base_config(
+        config_path=args.config_path,
+        super_config_path=args.super_config_path,
+        data_root=args.data_root,
+        inference_dataset=args.inference_dataset,
+        inference_split=args.inference_split,
+    )
     os.makedirs(args.output_root, exist_ok=True)
 
     sampler = optuna.samplers.TPESampler(seed=args.sampler_seed)

@@ -21,6 +21,15 @@ from models.motip import build as build_motip
 from models.misc import load_checkpoint
 
 
+def _build_stage_tags(config: dict) -> dict:
+    return {
+        "stage": config.get("RUN_STAGE"),
+        "hpo_study_name": config.get("HPO_STUDY_NAME"),
+        "hpo_trial_number": config.get("HPO_TRIAL_NUMBER"),
+        "hpo_stage_iter": config.get("HPO_STAGE_ITER"),
+    }
+
+
 def submit_and_evaluate(config: dict):
     # Init Accelerator at beginning:
     accelerator = Accelerator()
@@ -63,6 +72,7 @@ def submit_and_evaluate(config: dict):
         exp_project=config.get("EXP_PROJECT"),
         exp_group=config.get("EXP_GROUP", inference_group),
         exp_name=exp_name,
+        extra_tags=_build_stage_tags(config),
     )
     try:
         # Log runtime config:

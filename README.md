@@ -97,15 +97,62 @@ Key outputs:
 - Optuna DB: `hspot_hota_optuna.db`
 - Best-trial summary: `./outputs/optuna_hspot/best_trial.json`
 
-## 7. Evaluate best checkpoint on test split (Docker)
+Default HSPOT tuning budget:
+- `N_TRIALS=40`
+- `TUNE_EPOCHS=6`
 
-Replace `<best_checkpoint_path>` with your best trial checkpoint:
+This keeps each trial short enough to search broadly on a single GPU while preserving the full 20-epoch budget for final training.
+
+## 7. Train the final HSPOT model from the best tuned hyperparameters (Docker)
+
+This stage trains a fresh model on `HSPOT train` using the best hyperparameters found during Optuna tuning. It keeps validation on `HSPOT val`.
 
 ```bash
-make eval BEST_CKPT=./outputs/<best_checkpoint_path>.pth
+make train-final
 ```
 
-## 8. Optional: local (non-Docker) setup
+Default handoff files:
+
+```text
+./outputs/optuna_hspot/best_trial.json
+./outputs/hspot_final_train/
+./outputs/hspot_final_train/final_train_summary.json
+```
+
+Default final training budget:
+- `FINAL_EPOCHS=20`
+
+You can override them if needed:
+
+```bash
+make train-final \
+  BEST_TRIAL_JSON=./outputs/optuna_hspot/best_trial.json \
+  FINAL_OUTPUT_DIR=./outputs/hspot_final_train \
+  FINAL_EXP_NAME=hspot_final_train \
+  FINAL_EPOCHS=20
+```
+
+## 8. Evaluate best checkpoint on test split (Docker)
+
+Evaluate the best checkpoint recorded by the final training stage:
+
+```bash
+make eval-final
+```
+
+This uses:
+
+```text
+./outputs/hspot_final_train/final_train_summary.json
+```
+
+If needed, you can still evaluate a specific checkpoint manually:
+
+```bash
+make eval BEST_CKPT=./outputs/<final_checkpoint_path>.pth
+```
+
+## 9. Optional: local (non-Docker) setup
 
 This section is optional. Use it only if you explicitly want to run outside Docker.
 
@@ -148,20 +195,33 @@ uv run python optuna_tune.py \
   --inference-split val \
   --study-name hspot_hota_optuna \
   --storage sqlite:///hspot_hota_optuna.db \
-  --n-trials 30 \
-  --epochs 10 \
+  --n-trials 40 \
+  --epochs 6 \
   --output-root ./outputs/optuna_hspot
 ```
 
-Local final evaluation:
+Local final training from tuned hyperparameters:
 
 ```bash
-uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
+uv run python train_best_from_tuning.py \
   --config-path ./configs/high_street_property_occupancy_tracking.yaml \
   --data-root ./datasets/ \
-  --inference-mode evaluate \
+  --inference-dataset HSPOT \
+  --inference-split val \
+  --best-trial-json ./outputs/optuna_hspot/best_trial.json \
+  --output-dir ./outputs/hspot_final_train \
+  --exp-name hspot_final_train \
+  --epochs 20
+```
+
+Local final evaluation using the best checkpoint from the final training summary:
+
+```bash
+uv run python eval_best_from_final_train.py \
+  --config-path ./configs/high_street_property_occupancy_tracking.yaml \
+  --data-root ./datasets/ \
+  --summary-json ./outputs/hspot_final_train/final_train_summary.json \
   --inference-dataset HSPOT \
   --inference-split test \
-  --inference-model <best_checkpoint_path> \
   --outputs-dir ./outputs/hspot_final_test
 ```

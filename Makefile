@@ -6,12 +6,17 @@ EXP_NAME ?= hspot_train
 BASELINE_CKPT ?= ./pretrains/r50_deformable_detr_motip_dancetrack.pth
 STUDY_NAME ?= hspot_hota_optuna
 STORAGE ?= sqlite:///hspot_hota_optuna.db
-N_TRIALS ?= 30
-EPOCHS ?= 10
+N_TRIALS ?= 40
+TUNE_EPOCHS ?= 6
 OUTPUT_ROOT ?= ./outputs/optuna_hspot
+BEST_TRIAL_JSON ?= ./outputs/optuna_hspot/best_trial.json
+FINAL_OUTPUT_DIR ?= ./outputs/hspot_final_train
+FINAL_EXP_NAME ?= hspot_final_train
+FINAL_SUMMARY_JSON ?= ./outputs/hspot_final_train/final_train_summary.json
+FINAL_EPOCHS ?= 20
 BEST_CKPT ?= ./outputs/REPLACE_WITH_BEST_CHECKPOINT.pth
 
-.PHONY: help bootstrap bootstrap-cpu bootstrap-gpu build build-cpu build-gpu shell smoke-cpu train baseline-val tune eval
+.PHONY: help bootstrap bootstrap-cpu bootstrap-gpu build build-cpu build-gpu shell smoke-cpu train baseline-val tune train-final eval-final eval
 
 help:
 	@echo "Available targets:"
@@ -26,6 +31,8 @@ help:
 	@echo "  make train          - Run training in container"
 	@echo "  make baseline-val   - Evaluate pretrained MOTIP checkpoint on HSPOT val in container"
 	@echo "  make tune           - Run Optuna tuning in container"
+	@echo "  make train-final    - Train final HSPOT model from best Optuna hyperparameters"
+	@echo "  make eval-final     - Evaluate the best final-training checkpoint on HSPOT test"
 	@echo "  make eval           - Evaluate BEST_CKPT on test split in container"
 
 bootstrap:
@@ -56,7 +63,8 @@ train:
 	docker compose run --rm motip uv run accelerate launch --num_processes=1 train.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
-		--exp-name $(EXP_NAME)
+		--exp-name $(EXP_NAME) \
+		--run-stage finetuning
 
 baseline-val:
 	docker compose run --rm motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
@@ -66,7 +74,8 @@ baseline-val:
 		--inference-dataset HSPOT \
 		--inference-split val \
 		--inference-model $(BASELINE_CKPT) \
-		--outputs-dir ./outputs/hspot_pretrained_val
+		--outputs-dir ./outputs/hspot_pretrained_val \
+		--run-stage baseline_establishment
 
 tune:
 	docker compose run --rm motip uv run python optuna_tune.py \
@@ -77,8 +86,28 @@ tune:
 		--study-name $(STUDY_NAME) \
 		--storage $(STORAGE) \
 		--n-trials $(N_TRIALS) \
-		--epochs $(EPOCHS) \
+		--epochs $(TUNE_EPOCHS) \
 		--output-root $(OUTPUT_ROOT)
+
+train-final:
+	docker compose run --rm motip uv run python train_best_from_tuning.py \
+		--config-path $(CONFIG) \
+		--data-root $(DATA_ROOT) \
+		--inference-dataset HSPOT \
+		--inference-split val \
+		--best-trial-json $(BEST_TRIAL_JSON) \
+		--output-dir $(FINAL_OUTPUT_DIR) \
+		--exp-name $(FINAL_EXP_NAME) \
+		--epochs $(FINAL_EPOCHS)
+
+eval-final:
+	docker compose run --rm motip uv run python eval_best_from_final_train.py \
+		--config-path $(CONFIG) \
+		--data-root $(DATA_ROOT) \
+		--summary-json $(FINAL_SUMMARY_JSON) \
+		--inference-dataset HSPOT \
+		--inference-split test \
+		--outputs-dir ./outputs/hspot_final_test
 
 eval:
 	docker compose run --rm motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
@@ -88,4 +117,5 @@ eval:
 		--inference-dataset HSPOT \
 		--inference-split test \
 		--inference-model $(BEST_CKPT) \
-		--outputs-dir ./outputs/hspot_final_test
+		--outputs-dir ./outputs/hspot_final_test \
+		--run-stage final_evaluation

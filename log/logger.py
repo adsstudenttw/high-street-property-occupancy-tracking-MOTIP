@@ -61,6 +61,7 @@ class Logger:
         exp_project: str | None = None,
         exp_group: str | None = None,
         exp_name: str | None = None,
+        extra_tags: dict | None = None,
     ):
         self.logdir = logdir
         self.use_mlflow = bool(
@@ -96,6 +97,10 @@ class Logger:
                     "owner": exp_owner if exp_owner is not None else "",
                     "group": exp_group if exp_group is not None else "",
                 }
+                if extra_tags is not None:
+                    for k, v in extra_tags.items():
+                        if v is not None and v != "":
+                            tags[k] = str(v)
                 # Start run (run_name is supported) :contentReference[oaicite:7]{index=7}
                 mlflow.start_run(run_name=exp_name)
                 self._mlflow_active = True
