@@ -24,6 +24,8 @@ from models.misc import load_checkpoint
 def _build_stage_tags(config: dict) -> dict:
     return {
         "stage": config.get("RUN_STAGE"),
+        "dataset_key": config.get("INFERENCE_DATASET"),
+        "eval_split": config.get("INFERENCE_SPLIT"),
         "hpo_study_name": config.get("HPO_STUDY_NAME"),
         "hpo_trial_number": config.get("HPO_TRIAL_NUMBER"),
         "hpo_stage_iter": config.get("HPO_STAGE_ITER"),

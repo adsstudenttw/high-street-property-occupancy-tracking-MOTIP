@@ -8,15 +8,16 @@ STUDY_NAME ?= hspot_hota_optuna
 STORAGE ?= sqlite:///hspot_hota_optuna.db
 N_TRIALS ?= 40
 TUNE_EPOCHS ?= 6
+TUNE_TIMEOUT ?= 360000
+TUNE_SAMPLER_SEED ?= 42
+TUNE_PRUNER_STARTUP_TRIALS ?= 8
+TUNE_PRUNER_WARMUP_STEPS ?= 3
+TUNE_PRUNER_INTERVAL_STEPS ?= 1
 OUTPUT_ROOT ?= ./outputs/optuna_hspot
 BEST_TRIAL_JSON ?= ./outputs/optuna_hspot/best_trial.json
-FINAL_OUTPUT_DIR ?= ./outputs/hspot_final_train
-FINAL_EXP_NAME ?= hspot_final_train
-FINAL_SUMMARY_JSON ?= ./outputs/hspot_final_train/final_train_summary.json
-FINAL_EPOCHS ?= 20
 BEST_CKPT ?= ./outputs/REPLACE_WITH_BEST_CHECKPOINT.pth
 
-.PHONY: help bootstrap bootstrap-cpu bootstrap-gpu build build-cpu build-gpu shell smoke-cpu train baseline-val tune train-final eval-final eval
+.PHONY: help bootstrap bootstrap-cpu bootstrap-gpu build build-cpu build-gpu shell smoke-cpu train baseline-val tune eval-final eval
 
 help:
 	@echo "Available targets:"
@@ -31,8 +32,7 @@ help:
 	@echo "  make train          - Run training in container"
 	@echo "  make baseline-val   - Evaluate pretrained MOTIP checkpoint on HSPOT val in container"
 	@echo "  make tune           - Run Optuna tuning in container"
-	@echo "  make train-final    - Train final HSPOT model from best Optuna hyperparameters"
-	@echo "  make eval-final     - Evaluate the best final-training checkpoint on HSPOT test"
+	@echo "  make eval-final     - Evaluate the best checkpoint from Optuna tuning on HSPOT test"
 	@echo "  make eval           - Evaluate BEST_CKPT on test split in container"
 
 bootstrap:
@@ -86,25 +86,20 @@ tune:
 		--study-name $(STUDY_NAME) \
 		--storage $(STORAGE) \
 		--n-trials $(N_TRIALS) \
+		--timeout $(TUNE_TIMEOUT) \
+		--sampler-seed $(TUNE_SAMPLER_SEED) \
+		--pruner-startup-trials $(TUNE_PRUNER_STARTUP_TRIALS) \
+		--pruner-warmup-steps $(TUNE_PRUNER_WARMUP_STEPS) \
+		--pruner-interval-steps $(TUNE_PRUNER_INTERVAL_STEPS) \
 		--epochs $(TUNE_EPOCHS) \
 		--output-root $(OUTPUT_ROOT)
 
-train-final:
-	docker compose run --rm motip uv run python train_best_from_tuning.py \
-		--config-path $(CONFIG) \
-		--data-root $(DATA_ROOT) \
-		--inference-dataset HSPOT \
-		--inference-split val \
-		--best-trial-json $(BEST_TRIAL_JSON) \
-		--output-dir $(FINAL_OUTPUT_DIR) \
-		--exp-name $(FINAL_EXP_NAME) \
-		--epochs $(FINAL_EPOCHS)
-
 eval-final:
-	docker compose run --rm motip uv run python eval_best_from_final_train.py \
+	docker compose run --rm motip uv run python eval_best_from_tuning.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
-		--summary-json $(FINAL_SUMMARY_JSON) \
+		--best-trial-json $(BEST_TRIAL_JSON) \
+		--output-root $(OUTPUT_ROOT) \
 		--inference-dataset HSPOT \
 		--inference-split test \
 		--outputs-dir ./outputs/hspot_final_test

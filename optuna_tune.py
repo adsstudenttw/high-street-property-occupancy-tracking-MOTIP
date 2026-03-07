@@ -24,10 +24,10 @@ def build_parser():
     parser.add_argument("--study-name", type=str, default="motip_hota_tuning")
     parser.add_argument("--storage", type=str, default="sqlite:///optuna_study.db")
     parser.add_argument("--n-trials", type=int, default=40)
-    parser.add_argument("--timeout", type=int, default=None)
+    parser.add_argument("--timeout", type=int, default=360000)
     parser.add_argument("--sampler-seed", type=int, default=42)
-    parser.add_argument("--pruner-startup-trials", type=int, default=3)
-    parser.add_argument("--pruner-warmup-steps", type=int, default=2)
+    parser.add_argument("--pruner-startup-trials", type=int, default=8)
+    parser.add_argument("--pruner-warmup-steps", type=int, default=3)
     parser.add_argument("--pruner-interval-steps", type=int, default=1)
     parser.add_argument("--epochs", type=int, default=6)
     parser.add_argument("--output-root", type=str, default="./outputs/optuna")
@@ -107,6 +107,10 @@ def make_objective(base_cfg, args):
             raise RuntimeError(
                 "No HOTA was produced during tuning. Ensure INFERENCE_DATASET and INFERENCE_SPLIT are set for eval."
             )
+        if summary.get("best_checkpoint_path") is not None:
+            trial.set_user_attr(
+                "best_checkpoint_path", summary.get("best_checkpoint_path")
+            )
         if summary.get("pruned", False):
             raise optuna.TrialPruned()
         trial.set_user_attr("best_eval_hota", float(best_hota))
@@ -150,11 +154,14 @@ def main():
         timeout=args.timeout,
     )
 
+    best_trial_user_attrs = dict(study.best_trial.user_attrs)
     best_payload = {
         "study_name": study.study_name,
         "best_trial_number": study.best_trial.number,
         "best_value_hota": study.best_value,
         "best_params": study.best_params,
+        "best_trial_outputs_dir": best_trial_user_attrs.get("outputs_dir"),
+        "best_checkpoint_path": best_trial_user_attrs.get("best_checkpoint_path"),
     }
     with open(os.path.join(args.output_root, "best_trial.json"), "w") as f:
         json.dump(best_payload, f, indent=2)

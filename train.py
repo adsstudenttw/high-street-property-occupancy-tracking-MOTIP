@@ -32,8 +32,19 @@ from utils.misc import is_main_process
 
 
 def _build_stage_tags(config: dict) -> dict:
+    datasets = config.get("DATASETS")
+    dataset_splits = config.get("DATASET_SPLITS")
+    dataset_key = ",".join(datasets) if isinstance(datasets, list) else datasets
+    train_split = (
+        ",".join(dataset_splits)
+        if isinstance(dataset_splits, list)
+        else dataset_splits
+    )
     return {
         "stage": config.get("RUN_STAGE"),
+        "dataset_key": dataset_key,
+        "train_split": train_split,
+        "inference_split": config.get("INFERENCE_SPLIT"),
         "hpo_study_name": config.get("HPO_STUDY_NAME"),
         "hpo_trial_number": config.get("HPO_TRIAL_NUMBER"),
         "hpo_stage_iter": config.get("HPO_STAGE_ITER"),
