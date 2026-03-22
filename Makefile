@@ -42,6 +42,9 @@ help:
 	@echo "  STORAGE=$(STORAGE)"
 
 prepare-storage:
+	mkdir -p datasets
+	mkdir -p outputs
+	mkdir -p pretrains
 	mkdir -p "$(STORAGE_ROOT)/cache/xdg"
 	mkdir -p "$(STORAGE_ROOT)/cache/uv"
 	mkdir -p "$(STORAGE_ROOT)/cache/pip"
