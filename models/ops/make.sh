@@ -8,8 +8,8 @@
 # ------------------------------------------------------------------------------------------------
 
 
-# TORCH_CUDA_ARCH_LIST="8.0" CUDA_HOME='/path/to/your/cuda/dir'  
-set -euo pipefail
+# TORCH_CUDA_ARCH_LIST="8.0" CUDA_HOME='/path/to/your/cuda/dir'
+set -eu
 
 # Use the uv-managed interpreter when available so the extension is installed
 # into the same environment as the rest of the project dependencies.
