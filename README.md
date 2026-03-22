@@ -89,10 +89,12 @@ Disabling MLflow is possible, but it is not the default workflow documented here
 make prepare-storage
 make bootstrap-gpu
 newgrp docker
-make build-gpu
+TORCH_CUDA_ARCH_LIST="8.6" make build-gpu
 ```
 
 `make bootstrap-gpu` installs Docker from the official Docker apt repo, installs the NVIDIA Container Toolkit, and moves Docker/containerd storage under `./.surf-storage/` on the mounted SURF volume.
+
+For the SURF VM described here, `TORCH_CUDA_ARCH_LIST="8.6"` is recommended because the environment uses an NVIDIA A10 GPU.
 
 If you want a different storage path on the same mounted volume, override it explicitly:
 
