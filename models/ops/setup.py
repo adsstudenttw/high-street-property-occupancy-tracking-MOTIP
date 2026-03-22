@@ -35,7 +35,10 @@ def get_extensions():
 
 
 
-    if torch.cuda.is_available() and CUDA_HOME is not None:
+    # Docker image builds do not have a live GPU attached, so
+    # torch.cuda.is_available() can be false even when the CUDA toolkit is
+    # present and the extension can be compiled successfully.
+    if CUDA_HOME is not None:
         extension = CUDAExtension
         sources += source_cuda
         define_macros += [("WITH_CUDA", None)]
