@@ -3,7 +3,7 @@ ARG BUILD_CUDA_OPS=1
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_LINK_MODE=copy
-ENV UV_PYTHON=python3
+ENV UV_PYTHON=3.12
 ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /workspace
@@ -25,7 +25,8 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 # Install dependencies first for better layer caching.
 COPY pyproject.toml ./
-RUN uv sync --no-dev
+RUN uv python install 3.12
+RUN uv sync --no-dev --python 3.12
 
 # Copy project source.
 COPY . .
