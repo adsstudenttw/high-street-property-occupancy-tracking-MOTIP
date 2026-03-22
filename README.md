@@ -86,6 +86,7 @@ Disabling MLflow is possible, but it is not the default workflow documented here
 ## 6. Docker setup on SURF RC (default)
 
 ```bash
+make prepare-storage
 make bootstrap-gpu
 newgrp docker
 make build-gpu
@@ -99,18 +100,7 @@ If you want a different storage path on the same mounted volume, override it exp
 make bootstrap-gpu STORAGE_ROOT=/path/on/mounted/volume/motip_storage_runtime
 ```
 
-## 7. GPU VM run flow
-
-```bash
-make bootstrap-gpu
-newgrp docker
-make build-gpu
-make train
-```
-
-Outputs are written under `./outputs/`, which stays on the SURF volume because the repo is cloned there.
-
-## 8. Evaluate the pretrained MOTIP baseline on HSPOT val (Docker)
+## 7. Establish the baseline on HSPOT val (Docker)
 
 Download the pretrained MOTIP checkpoint first. The DanceTrack MOTIP checkpoint is referenced in [docs/MODEL_ZOO.md](./docs/MODEL_ZOO.md).
 
@@ -132,7 +122,17 @@ Or override the checkpoint path explicitly:
 make baseline-val BASELINE_CKPT=./pretrains/<pretrained_motip_checkpoint>.pth
 ```
 
-This gives you the zero-shot baseline on `HSPOT val` before finetuning or hyperparameter tuning.
+This is the baseline establishment stage. It gives you the zero-shot baseline on `HSPOT val` before finetuning or hyperparameter tuning.
+
+## 8. Run finetuning (Docker)
+
+```bash
+make train
+```
+
+`make train` runs the finetuning stage for this fork. Internally it calls `train.py` with `--run-stage finetuning`.
+
+Outputs are written under `./outputs/`, which stays on the SURF volume because the repo is cloned there.
 
 ## 9. Run hyperparameter tuning (Docker, optimize validation HOTA)
 
