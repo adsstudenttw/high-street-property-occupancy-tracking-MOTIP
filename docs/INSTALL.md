@@ -9,19 +9,22 @@ Our codebase is built upon **Python 3.12, PyTorch 2.4.0 (recommended)**.
 ## Setup scripts
 
 ```shell
-conda create -n MOTIP python=3.12		# suggest to use virtual envs
-conda activate MOTIP
-# PyTorch:
-conda install pytorch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 pytorch-cuda=12.1 -c pytorch -c nvidia
-# Other dependencies:
-conda install pyyaml tqdm matplotlib scipy pandas
-pip install wandb accelerate einops
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv python install 3.12
+uv sync --python 3.12
 # Compile the Deformable Attention:
 cd models/ops/
 sh make.sh
 # [Optional] After compiled, you can use following script to test it:
-python test.py
+uv run --no-sync python test.py
 ```
 
+The `uv` environment matches the original install as closely as possible:
+- Python `3.12`
+- PyTorch `2.4.0`, `torchvision` `0.19.0`, `torchaudio` `2.4.0`
+- CUDA 12.1 wheels from the official PyTorch index configured in `pyproject.toml`
+- Original MOTIP runtime dependencies plus the extra packages this fork imports
 
+The deformable attention build still requires a CUDA-enabled environment with a
+working toolkit, matching the original `setup.py` behavior.
 

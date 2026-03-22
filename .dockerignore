@@ -9,5 +9,6 @@ __pycache__
 .venv
 datasets
 outputs
+.surf-storage
 TrackEval/data
 TrackEval/tests

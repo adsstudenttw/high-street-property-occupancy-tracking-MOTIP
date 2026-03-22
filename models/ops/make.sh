@@ -9,4 +9,12 @@
 
 
 # TORCH_CUDA_ARCH_LIST="8.0" CUDA_HOME='/path/to/your/cuda/dir'  
-python setup.py build install
+set -euo pipefail
+
+# Use the uv-managed interpreter when available so the extension is installed
+# into the same environment as the rest of the project dependencies.
+if command -v uv >/dev/null 2>&1; then
+  uv run --no-sync python setup.py build install
+else
+  python setup.py build install
+fi

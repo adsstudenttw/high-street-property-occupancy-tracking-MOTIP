@@ -13,9 +13,14 @@ services:
     gpus: all
     shm_size: "16gb"
     volumes:
-      - ./:/workspace
-      - ./datasets:/workspace/datasets
-      - ./outputs:/workspace/outputs
+      - ${HOST_PROJECT_ROOT:-.}:/workspace
     environment:
-      - PYTHONUNBUFFERED=1
-      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://127.0.0.1:5000}
+      PYTHONUNBUFFERED: "1"
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://127.0.0.1:5000}
+      TMPDIR: /workspace/.surf-storage/tmp
+      XDG_CACHE_HOME: /workspace/.surf-storage/cache/xdg
+      UV_CACHE_DIR: /workspace/.surf-storage/cache/uv
+      PIP_CACHE_DIR: /workspace/.surf-storage/cache/pip
+      WANDB_DIR: /workspace/.surf-storage/cache/wandb
+      TORCH_HOME: /workspace/.surf-storage/cache/torch
+      MPLCONFIGDIR: /workspace/.surf-storage/cache/matplotlib

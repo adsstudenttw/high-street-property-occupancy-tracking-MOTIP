@@ -36,5 +36,5 @@ DETR_NUM_CHECKPOINT_FRAMES: 5
 USE_DECODER_CHECKPOINT: False
 
 # MLflow settings
-MLFLOW_TRACKING_URI: "http://127.0.0.1:5000" # Alter to SURF RC MLflow instance
+MLFLOW_TRACKING_URI: "http://ubuntu2204sudo.property-occupa.src.surf-hosted.nl:80"
 USE_WANDB: True

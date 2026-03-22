@@ -35,7 +35,7 @@ ENV PATH="/workspace/.venv/bin:${PATH}"
 
 # Compile Deformable Attention CUDA ops (GPU build).
 RUN if [ "$BUILD_CUDA_OPS" = "1" ]; then \
-      cd models/ops && python setup.py build install; \
+      cd models/ops && sh make.sh; \
     else \
       echo "Skipping CUDA ops build (BUILD_CUDA_OPS=${BUILD_CUDA_OPS})"; \
     fi

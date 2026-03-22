@@ -13,3 +13,4 @@ __pycache__/
 
 # Training artifacts
 outputs/
+.surf-storage/
