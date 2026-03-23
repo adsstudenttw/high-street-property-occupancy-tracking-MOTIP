@@ -7,6 +7,8 @@ DATA_ROOT ?= ./datasets/
 EXP_NAME ?= hspot_train
 BASELINE_EXP_NAME ?= hspot_baseline_val
 BASELINE_CKPT ?= ./pretrains/r50_deformable_detr_motip_dancetrack.pth
+BASELINE_REL_PE_LENGTH ?= 30
+BASELINE_MISS_TOLERANCE ?= 30
 STUDY_NAME ?= hspot_hota_optuna
 STORAGE ?= sqlite:///./.surf-storage/optuna/hspot_hota_optuna.db
 N_TRIALS ?= 40
@@ -83,10 +85,12 @@ baseline-val: prepare-storage
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
 		--exp-name $(BASELINE_EXP_NAME) \
+		--rel-pe-length $(BASELINE_REL_PE_LENGTH) \
 		--inference-mode evaluate \
 		--inference-dataset HSPOT \
 		--inference-split val \
 		--inference-model $(BASELINE_CKPT) \
+		--miss-tolerance $(BASELINE_MISS_TOLERANCE) \
 		--outputs-dir ./outputs/hspot_pretrained_val \
 		--run-stage baseline_establishment
 
