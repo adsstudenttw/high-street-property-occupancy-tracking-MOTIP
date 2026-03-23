@@ -86,7 +86,12 @@ class DanceTrack(OneDataset):
             with open(gt_file_path, "r") as gt_file:
                 for line in gt_file:
                     line = line.strip().split(",")
-                    frame_id, obj_id, x, y, w, h, _, _, _ = line
+                    if len(line) < 6:
+                        continue
+                    # HSPOT uses MOT-style gt rows with 10 columns, while
+                    # some DanceTrack-style exports only provide 9. Training
+                    # only needs the first 6 fields here.
+                    frame_id, obj_id, x, y, w, h = line[:6]
                     frame_id, obj_id = map(int, [frame_id, obj_id])
                     x, y, w, h = map(float, [x, y, w, h])
                     bbox = [x, y, w, h]
