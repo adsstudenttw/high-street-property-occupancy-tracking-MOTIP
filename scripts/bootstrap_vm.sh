@@ -95,7 +95,7 @@ if [[ -f /etc/containerd/config.toml ]]; then
   sudo cp /etc/containerd/config.toml /etc/containerd/config.toml.bak
 fi
 sudo containerd config default | sudo tee /etc/containerd/config.toml >/dev/null
-sudo sed -i "s#root = \"/var/lib/containerd\"#root = \"${CONTAINERD_ROOT}\"#" /etc/containerd/config.toml
+sudo sed -i "s#^root = .*#root = '${CONTAINERD_ROOT}'#" /etc/containerd/config.toml
 
 sudo install -d -m 0755 /etc/docker
 if [[ -f /etc/docker/daemon.json ]]; then
@@ -128,6 +128,8 @@ curl -s -L "https://nvidia.github.io/libnvidia-container/${distribution}/libnvid
 sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
 sudo nvidia-ctk runtime configure --runtime=docker
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
 
 echo "[6/7] Starting services and verifying Docker access..."
 sudo systemctl enable containerd
@@ -138,7 +140,7 @@ sudo usermod -aG docker "${USER}"
 
 docker --version
 sudo docker info --format 'DockerRootDir={{.DockerRootDir}}'
-echo "Containerd root: $(sudo awk -F'\"' '/^root = / {print $2; exit}' /etc/containerd/config.toml)"
+echo "Containerd root: $(sudo awk -F"'" '/^root = / {print $2; exit}' /etc/containerd/config.toml)"
 sudo docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
 
 echo "[7/7] Done."
