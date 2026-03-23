@@ -62,9 +62,8 @@ def submit_and_evaluate(config: dict):
     os.makedirs(outputs_dir, exist_ok=True)
 
     # Init Logger (use_wandb flag is reused by Logger to toggle MLflow):
-    exp_name = config.get(
-        "EXP_NAME",
-        f"{mode}_{inference_dataset}_{inference_split}_{_inference_model_name}",
+    exp_name = config.get("EXP_NAME") or (
+        f"{mode}_{inference_dataset}_{inference_split}_{_inference_model_name}"
     )
     logger = Logger(
         logdir=str(outputs_dir),

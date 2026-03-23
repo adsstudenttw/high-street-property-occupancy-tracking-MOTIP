@@ -5,6 +5,7 @@ STORAGE_ROOT ?= $(HOST_PROJECT_ROOT)/.surf-storage
 CONFIG ?= ./configs/high_street_property_occupancy_tracking.yaml
 DATA_ROOT ?= ./datasets/
 EXP_NAME ?= hspot_train
+BASELINE_EXP_NAME ?= hspot_baseline_val
 BASELINE_CKPT ?= ./pretrains/r50_deformable_detr_motip_dancetrack.pth
 STUDY_NAME ?= hspot_hota_optuna
 STORAGE ?= sqlite:///./.surf-storage/optuna/hspot_hota_optuna.db
@@ -81,6 +82,7 @@ baseline-val: prepare-storage
 	$(COMPOSE) run --rm motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
+		--exp-name $(BASELINE_EXP_NAME) \
 		--inference-mode evaluate \
 		--inference-dataset HSPOT \
 		--inference-split val \
