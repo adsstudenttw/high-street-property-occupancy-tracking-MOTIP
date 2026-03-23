@@ -3,6 +3,7 @@
 import os
 import json
 import argparse
+import re
 import yaml
 import wandb
 import mlflow
@@ -307,7 +308,9 @@ class Logger:
                         )
                     # Log x-axis value as a metric too (epoch vs global_step)
                     mlflow.log_metric(
-                        x_axis_name, float(x_axis_step), step=int(global_step)
+                        self._sanitize_mlflow_metric_name(x_axis_name),
+                        float(x_axis_step),
+                        step=int(global_step),
                     )
         return
 
@@ -361,8 +364,18 @@ class Logger:
                 metric_name = name
             metric_value = value.__getattribute__(statistic)
             # MLflow supports logging a metric with step :contentReference[oaicite:9]{index=9}
-            mlflow.log_metric(metric_name, float(metric_value), step=int(global_step))
+            mlflow.log_metric(
+                self._sanitize_mlflow_metric_name(metric_name),
+                float(metric_value),
+                step=int(global_step),
+            )
         return
+
+    @staticmethod
+    def _sanitize_mlflow_metric_name(metric_name: str) -> str:
+        sanitized = re.sub(r"[^A-Za-z0-9_\\-\\. /:]", "_", metric_name)
+        sanitized = re.sub(r"_+", "_", sanitized).strip(" _")
+        return sanitized or "metric"
 
     def close(self):
         # End MLflow run if active :contentReference[oaicite:10]{index=10}
