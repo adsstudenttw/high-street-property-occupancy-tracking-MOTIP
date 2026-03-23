@@ -49,6 +49,13 @@ class RuntimeTracker:
         self.area_thresh = area_thresh
         self.only_detr = only_detr
         self.num_id_vocabulary = get_model(model).num_id_vocabulary
+        self.max_history_length = getattr(get_model(model).id_decoder, "rel_pe_length", None)
+
+        if self.max_history_length is not None and self.miss_tolerance > self.max_history_length:
+            raise ValueError(
+                "MISS_TOLERANCE must be less than or equal to REL_PE_LENGTH during inference. "
+                f"Got MISS_TOLERANCE={self.miss_tolerance} and REL_PE_LENGTH={self.max_history_length}."
+            )
 
         # Check for the legality of settings:
         assert self.assignment_protocol in ["hungarian", "id-max", "object-max", "object-priority", "id-priority"], \
@@ -258,11 +265,12 @@ class RuntimeTracker:
 
     def _update_trajectory_infos(self, boxes: torch.Tensor, output_embeds: torch.Tensor, id_labels: torch.Tensor):
         # 1. cut trajectory infos:
-        self.trajectory_features = self.trajectory_features[-self.miss_tolerance + 2:, ...]
-        self.trajectory_boxes = self.trajectory_boxes[-self.miss_tolerance + 2:, ...]
-        self.trajectory_id_labels = self.trajectory_id_labels[-self.miss_tolerance + 2:, ...]
-        self.trajectory_times = self.trajectory_times[-self.miss_tolerance + 2:, ...]
-        self.trajectory_masks = self.trajectory_masks[-self.miss_tolerance + 2:, ...]
+        history_length = self.miss_tolerance - 2
+        self.trajectory_features = self.trajectory_features[-history_length:, ...]
+        self.trajectory_boxes = self.trajectory_boxes[-history_length:, ...]
+        self.trajectory_id_labels = self.trajectory_id_labels[-history_length:, ...]
+        self.trajectory_times = self.trajectory_times[-history_length:, ...]
+        self.trajectory_masks = self.trajectory_masks[-history_length:, ...]
         # 2. find out all new instances:
         already_id_labels = set(self.trajectory_id_labels[0].tolist() if self.trajectory_id_labels.shape[0] > 0 else [])
         _id_labels = set(id_labels.tolist())

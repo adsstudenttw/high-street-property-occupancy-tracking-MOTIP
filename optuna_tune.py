@@ -36,6 +36,10 @@ def build_parser():
 
 
 def sample_hparams(trial, cfg):
+    rel_pe_length = int(cfg["REL_PE_LENGTH"])
+    miss_tolerance_low = min(16, rel_pe_length)
+    miss_tolerance_high = min(32, rel_pe_length)
+
     params = {
         # Optimizer / training stability.
         "LR": trial.suggest_float("LR", 5e-5, 2e-4, log=True),
@@ -55,7 +59,9 @@ def sample_hparams(trial, cfg):
         "DET_THRESH": trial.suggest_float("DET_THRESH", 0.25, 0.5),
         "NEWBORN_THRESH": trial.suggest_float("NEWBORN_THRESH", 0.45, 0.75),
         "ID_THRESH": trial.suggest_float("ID_THRESH", 0.1, 0.3),
-        "MISS_TOLERANCE": trial.suggest_int("MISS_TOLERANCE", 16, 32),
+        "MISS_TOLERANCE": trial.suggest_int(
+            "MISS_TOLERANCE", miss_tolerance_low, miss_tolerance_high
+        ),
         "AREA_THRESH": trial.suggest_categorical("AREA_THRESH", [0, 25]),
     }
     return apply_tuned_hparams(cfg=cfg, params=params)
