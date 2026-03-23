@@ -4,7 +4,10 @@ ARG BUILD_CUDA_OPS=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_LINK_MODE=copy
 ENV UV_PYTHON=3.12
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV VIRTUAL_ENV=/opt/venv
 ENV PIP_NO_CACHE_DIR=1
+ENV PATH="/opt/venv/bin:/root/.local/bin:${PATH}"
 
 WORKDIR /workspace
 
@@ -21,7 +24,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:${PATH}"
 
 # Install dependencies first for better layer caching.
 COPY pyproject.toml ./
@@ -30,9 +32,6 @@ RUN uv sync --no-dev --python 3.12
 
 # Copy project source.
 COPY . .
-
-# Make venv python the default.
-ENV PATH="/workspace/.venv/bin:${PATH}"
 
 # Compile Deformable Attention CUDA ops (GPU build).
 RUN if [ "$BUILD_CUDA_OPS" = "1" ]; then \
