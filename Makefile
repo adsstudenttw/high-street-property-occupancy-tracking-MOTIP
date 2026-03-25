@@ -74,14 +74,14 @@ shell: prepare-storage
 	$(COMPOSE) run --rm motip bash
 
 train: prepare-storage
-	$(COMPOSE) run --rm motip uv run accelerate launch --num_processes=1 train.py \
+	$(COMPOSE) run --rm -T motip uv run accelerate launch --num_processes=1 train.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
 		--exp-name $(EXP_NAME) \
 		--run-stage finetuning
 
 baseline-val: prepare-storage
-	$(COMPOSE) run --rm motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
+	$(COMPOSE) run --rm -T motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
 		--exp-name $(BASELINE_EXP_NAME) \
@@ -95,7 +95,7 @@ baseline-val: prepare-storage
 		--run-stage baseline_establishment
 
 tune: prepare-storage
-	$(COMPOSE) run --rm motip uv run python optuna_tune.py \
+	$(COMPOSE) run --rm -T motip uv run python optuna_tune.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
 		--inference-dataset HSPOT \
@@ -112,7 +112,7 @@ tune: prepare-storage
 		--output-root $(OUTPUT_ROOT)
 
 eval-final: prepare-storage
-	$(COMPOSE) run --rm motip uv run python eval_best_from_tuning.py \
+	$(COMPOSE) run --rm -T motip uv run python eval_best_from_tuning.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
 		--best-trial-json $(BEST_TRIAL_JSON) \
@@ -122,7 +122,7 @@ eval-final: prepare-storage
 		--outputs-dir ./outputs/hspot_final_test
 
 eval: prepare-storage
-	$(COMPOSE) run --rm motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
+	$(COMPOSE) run --rm -T motip uv run accelerate launch --num_processes=1 submit_and_evaluate.py \
 		--config-path $(CONFIG) \
 		--data-root $(DATA_ROOT) \
 		--inference-mode evaluate \
