@@ -204,14 +204,20 @@ def resolve_tracker_dir(
                     f"Found {len(candidates)} candidates."
                 )
             model_name = candidates[0]
-        tracker_dir = os.path.join(
-            stage_root,
-            "evaluate",
-            inference_group,
-            dataset,
-            split,
-            model_name,
-            "tracker",
+        tracker_dir = _resolve_existing_tracker_dir(
+            candidates=[
+                os.path.join(
+                    stage_root,
+                    "evaluate",
+                    inference_group,
+                    dataset,
+                    split,
+                    model_name,
+                    "tracker",
+                ),
+                os.path.join(stage_root, "tracker"),
+            ],
+            stage=stage,
         )
         output_root = os.path.join(stage_root, "visualizations", stage)
         return tracker_dir, output_root
@@ -221,23 +227,26 @@ def resolve_tracker_dir(
             raise ValueError("--epoch is required for stage=finetuning.")
         if model_name is None:
             model_name = f"checkpoint_{epoch}"
-        tracker_dir = os.path.join(
-            stage_root,
-            "train",
-            "eval_during_train",
-            f"epoch_{epoch}",
-            "evaluate",
-            inference_group,
-            dataset,
-            split,
-            model_name,
-            "tracker",
+        epoch_root = os.path.join(
+            stage_root, "train", "eval_during_train", f"epoch_{epoch}"
+        )
+        tracker_dir = _resolve_existing_tracker_dir(
+            candidates=[
+                os.path.join(
+                    epoch_root,
+                    "evaluate",
+                    inference_group,
+                    dataset,
+                    split,
+                    model_name,
+                    "tracker",
+                ),
+                os.path.join(epoch_root, "tracker"),
+            ],
+            stage=stage,
         )
         output_root = os.path.join(
-            stage_root,
-            "train",
-            "eval_during_train",
-            f"epoch_{epoch}",
+            epoch_root,
             "visualizations",
         )
         return tracker_dir, output_root
@@ -256,6 +265,16 @@ def _find_model_candidates(
         return []
     return sorted(
         name for name in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, name))
+    )
+
+
+def _resolve_existing_tracker_dir(candidates: list[str], stage: str) -> str:
+    for candidate in candidates:
+        if os.path.isdir(candidate):
+            return candidate
+    formatted = "\n".join(candidates)
+    raise FileNotFoundError(
+        f"Could not find a tracker directory for stage '{stage}'. Checked:\n{formatted}"
     )
 
 
