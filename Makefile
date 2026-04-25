@@ -21,10 +21,15 @@ TUNE_PRUNER_INTERVAL_STEPS ?= 1
 OUTPUT_ROOT ?= ./outputs/optuna_hspot
 BEST_TRIAL_JSON ?= ./outputs/optuna_hspot/best_trial.json
 BEST_CKPT ?= ./outputs/REPLACE_WITH_BEST_CHECKPOINT.pth
+BASELINE_OUTPUT_ROOT ?= ./outputs/hspot_pretrained_val
+TRAIN_OUTPUT_ROOT ?= ./outputs/$(EXP_NAME)
+FINAL_OUTPUT_ROOT ?= ./outputs/hspot_final_test
+VIS_EPOCH ?= 0
+VIS_MAX_FRAMES ?= 0
 
 COMPOSE = HOST_PROJECT_ROOT="$(HOST_PROJECT_ROOT)" docker compose
 
-.PHONY: help prepare-storage bootstrap bootstrap-gpu build build-gpu shell train baseline-val tune eval-final eval
+.PHONY: help prepare-storage bootstrap bootstrap-gpu build build-gpu shell train baseline-val tune eval-final eval vis-baseline vis-train vis-best-trial vis-final
 
 help:
 	@echo "Available targets:"
@@ -39,6 +44,10 @@ help:
 	@echo "  make tune           - Run Optuna tuning in container"
 	@echo "  make eval-final     - Evaluate the best checkpoint from Optuna tuning on HSPOT test"
 	@echo "  make eval           - Evaluate BEST_CKPT on test split in container"
+	@echo "  make vis-baseline   - Render GT/prediction overlays from completed baseline outputs"
+	@echo "  make vis-train      - Render GT/prediction overlays from a completed finetuning eval epoch"
+	@echo "  make vis-best-trial - Render GT/prediction overlays from the best Optuna trial"
+	@echo "  make vis-final      - Render GT/prediction overlays from completed final evaluation outputs"
 	@echo ""
 	@echo "Variables:"
 	@echo "  STORAGE_ROOT=$(STORAGE_ROOT)"
@@ -131,3 +140,36 @@ eval: prepare-storage
 		--inference-model $(BEST_CKPT) \
 		--outputs-dir ./outputs/hspot_final_test \
 		--run-stage final_evaluation
+
+vis-baseline: prepare-storage
+	$(COMPOSE) run --rm -T motip uv run python visualize_tracking.py \
+		--stage baseline \
+		--data-root $(DATA_ROOT) \
+		--stage-root $(BASELINE_OUTPUT_ROOT) \
+		--split val \
+		--max-frames-per-sequence $(VIS_MAX_FRAMES)
+
+vis-train: prepare-storage
+	$(COMPOSE) run --rm -T motip uv run python visualize_tracking.py \
+		--stage finetuning \
+		--data-root $(DATA_ROOT) \
+		--stage-root $(TRAIN_OUTPUT_ROOT) \
+		--split val \
+		--epoch $(VIS_EPOCH) \
+		--max-frames-per-sequence $(VIS_MAX_FRAMES)
+
+vis-best-trial: prepare-storage
+	$(COMPOSE) run --rm -T motip uv run python visualize_tracking.py \
+		--stage best_trial \
+		--data-root $(DATA_ROOT) \
+		--best-trial-json $(BEST_TRIAL_JSON) \
+		--split val \
+		--max-frames-per-sequence $(VIS_MAX_FRAMES)
+
+vis-final: prepare-storage
+	$(COMPOSE) run --rm -T motip uv run python visualize_tracking.py \
+		--stage final \
+		--data-root $(DATA_ROOT) \
+		--stage-root $(FINAL_OUTPUT_ROOT) \
+		--split test \
+		--max-frames-per-sequence $(VIS_MAX_FRAMES)

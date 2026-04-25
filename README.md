@@ -172,6 +172,37 @@ If needed, you can still evaluate a specific checkpoint manually:
 make eval BEST_CKPT=./outputs/<final_checkpoint_path>.pth
 ```
 
+## 10b. Render GT and prediction boxes from completed stage outputs
+
+Use `visualize_tracking.py` after a stage has already finished. It reads the saved tracker outputs and draws them on the original HSPOT images together with ground-truth boxes.
+
+Examples:
+
+```bash
+make vis-baseline
+```
+
+```bash
+make vis-train TRAIN_OUTPUT_ROOT=./outputs/<train_run_dir> VIS_EPOCH=5
+```
+
+```bash
+make vis-best-trial
+```
+
+```bash
+make vis-final
+```
+
+Useful overrides:
+- `TRAIN_OUTPUT_ROOT=./outputs/<train_run_dir>` for finetuning runs
+- `VIS_EPOCH=<n>` to choose the evaluated finetuning epoch
+- `BEST_TRIAL_JSON=./outputs/optuna_hspot/best_trial.json` for the tuning winner
+- `FINAL_OUTPUT_ROOT=./outputs/hspot_final_test` for final evaluation outputs
+- `VIS_MAX_FRAMES=<n>` to cap rendered frames per sequence
+
+By default the script writes images under a `visualizations/` folder next to the completed stage outputs. If you need full manual control, you can still call `visualize_tracking.py` directly and pass `--tracker-dir` and `--output-dir`.
+
 ## 11. Storage Notes
 
 The Docker-oriented workflow now keeps the large project-managed files off the VM root disk as long as the repo is cloned onto the mounted SURF volume:
