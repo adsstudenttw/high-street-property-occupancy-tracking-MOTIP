@@ -172,17 +172,26 @@ def resolve_tracker_dir(
             )
         trial_root = os.path.dirname(checkpoint_path)
         checkpoint_name = os.path.splitext(os.path.basename(checkpoint_path))[0]
-        tracker_dir = os.path.join(
+        epoch_root = os.path.join(
             trial_root,
             "train",
             "eval_during_train",
             f"epoch_{checkpoint_epoch}",
-            "evaluate",
-            inference_group,
-            dataset,
-            split,
-            checkpoint_name,
-            "tracker",
+        )
+        tracker_dir = _resolve_existing_tracker_dir(
+            candidates=[
+                os.path.join(
+                    epoch_root,
+                    "evaluate",
+                    inference_group,
+                    dataset,
+                    split,
+                    checkpoint_name,
+                    "tracker",
+                ),
+                os.path.join(epoch_root, "tracker"),
+            ],
+            stage=stage,
         )
         output_root = os.path.join(trial_root, "visualizations", "best_trial")
         return tracker_dir, output_root
@@ -215,6 +224,7 @@ def resolve_tracker_dir(
                     model_name,
                     "tracker",
                 ),
+                os.path.join(stage_root, model_name, "tracker"),
                 os.path.join(stage_root, "tracker"),
             ],
             stage=stage,
